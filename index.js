@@ -25,7 +25,7 @@ const pool = mysql.createPool({
 });
 
 app.get('/' , (req , res)=>{
-    res.send(`server is running succesfully`);
+    res.send(`server is running succesfully on port ${port}`);
 });
 app.get('/api/getmembers' , (req , res)=>{
     pool.getConnection((err,connection)=>{
