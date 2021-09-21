@@ -8,6 +8,8 @@ const app = express();
 app.use(bodyparser.urlencoded({extended: false}));
 app.use(bodyparser.json());
 
+
+//mail connection
 var transporter = mail.createTransport({
     service: 'gmail',
     auth: {
@@ -16,6 +18,8 @@ var transporter = mail.createTransport({
     }
   });
 
+
+//mysql connection
 const pool = mysql.createPool({
     connectionLimit : 10,
     host            : 'localhost',
@@ -24,10 +28,13 @@ const pool = mysql.createPool({
     database        : 'restaurant_management'
 });
 
+//succesfull message
 app.get('/' , (req , res)=>{
     res.send(`server is running succesfully on port ${port}`);
 });
-app.get('/api/getmembers' , (req , res)=>{
+
+//get users
+app.get('/api/getusers' , (req , res)=>{
     pool.getConnection((err,connection)=>{
         if(err) throw err;
         console.log("connected to database");
@@ -41,8 +48,11 @@ app.get('/api/getmembers' , (req , res)=>{
     });
 });
 
+//add users
 app.post('/api/add' , (req , res)=>{
-    var ran = Math.floor(1000 + Math.random() * 9000);
+
+  //4 digit random number
+  var ran = Math.floor(1000 + Math.random() * 9000);
 
     pool.getConnection((err,connection)=>{
         if(err) throw err;
@@ -54,11 +64,15 @@ app.post('/api/add' , (req , res)=>{
          
         console.log(`Password: ${password}`);
 
+
+        //sql query
         connection.query(`INSERT INTO users (name,ph_no,email,res_name,tables,password) VALUES ('${params.name}','${params.ph_no}','${params.email}','${params.res_name}','${params.tables}','${password}')` , (err,rows)=>{
             if(err) console.log(err);
             else res.send(`data with name: ${params.name} has been added and your password has been send to ${email}`);
         });
 
+
+        //sending mail
         var mailOptions = {
             from: 'tushar.code05@gmail.com',
             to: email,
@@ -75,7 +89,6 @@ app.post('/api/add' , (req , res)=>{
           });
     });
 });
-  
+ 
 const port = process.env.PORT || 8000;
-
 app.listen(port , () => console.log(`server started on port ${port}`));
