@@ -2,13 +2,21 @@ const express = require('express');
 const mysql = require('mysql')
 const mail = require('nodemailer');
 const bodyparser = require('body-parser');
+const { json } = require('express');
 
 const app = express();
 
 app.use(bodyparser.urlencoded({extended: false}));
 app.use(bodyparser.json());
 
-
+//string slice
+function slice(str){
+  var result = "";
+  for(var i = 1 ; i < str.length -1 ; i++){
+    result += str[i];
+  }
+  return result;
+}
 //mail connection
 var transporter = mail.createTransport({
     service: 'gmail',
@@ -17,7 +25,6 @@ var transporter = mail.createTransport({
       pass: 'bot@@123'
     }
   });
-
 
 //mysql connection
 const pool = mysql.createPool({
@@ -28,13 +35,13 @@ const pool = mysql.createPool({
     database        : 'restaurant_management'
 });
 
-//succesfull message
+//server succesfull message
 app.get('/' , (req , res)=>{
     res.send(`server is running succesfully on port ${port}`);
 });
 
 //get users
-app.get('/api/getusers' , (req , res)=>{
+app.get('/get/users' , (req , res)=>{
     pool.getConnection((err,connection)=>{
         if(err) throw err;
         console.log("connected to database");
@@ -43,13 +50,32 @@ app.get('/api/getusers' , (req , res)=>{
 
         connection.query(query , (err,rows)=>{
             if(err) console.log(err);
-            else res.send(rows);
+            else{ 
+              rows = JSON.stringify(rows);
+              var obj = JSON.parse(slice(rows));
+              res.send(obj.res_name);
+            }
         });
     });
 });
 
+//login
+app.post('/login' , (req , res)=>{
+  pool.getConnection((err,connection)=>{
+      if(err) throw err;
+      console.log("connected to database");
+
+      var query = `SELECT email,password FROM users where email="${req.body.email}"`;
+
+      connection.query(query , (err,rows)=>{
+          if(err) console.log(err);
+          else res.send(rows);
+      });
+  });
+});
+
 //add users
-app.post('/api/add' , (req , res)=>{
+app.post('/add/users' , (req , res)=>{
 
   //4 digit random number
   var ran = Math.floor(1000 + Math.random() * 9000);
@@ -88,6 +114,32 @@ app.post('/api/add' , (req , res)=>{
             }
           });
     });
+});
+
+//add items
+app.post('/add/items' , (req , res)=>{
+  pool.getConnection((err,connection)=>{
+      if(err) throw err;
+      console.log("connected to database");
+
+      var category = `${req.body.category}`;
+
+      var query = `SELECT * FROM category WHERE name="${category}"`;
+
+      connection.query(query , (err,rows)=>{
+        if(err) console.log(err);
+        else{
+          //if there is no cotegory
+          if(rows = '[]'){
+          
+            connection.query(`INSERT INTO category (name) VALUES ("${category}")` , (err,rows)=>{
+              if(err)throw err;
+              else res.send("category saved");
+            });
+          }
+        }  
+      });
+  });
 });
  
 const port = process.env.PORT || 8000;
