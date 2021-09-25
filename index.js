@@ -127,14 +127,12 @@ app.post('/add/category' ,(req , res)=>{
 //save items section
 app.post('/add/items' ,(req , res)=>{
 
-  //connecting to database
   pool.getConnection(async (err,connection)=>{
     if(err) throw err;
     console.log("connected to database");
 
     let values="";
     let params = req.body;
-
     size = req.body.length;
 
     //making values for items query
@@ -154,23 +152,23 @@ app.post('/add/items' ,(req , res)=>{
           if(err) console.log(err);
           
           console.log("item saved");
-          console.log(rows);
           resolve(id = rows.insertId);
         });
 
       });
     }
     await save_items();
-    console.log(id);
 
     //making values for price query
     values ="";
     for(let i = 0 ; i < size ; i++){
-      if(params[i].half != undefined) {
-        values += `('half','${params[i].half}',${id}),`;
+      for(let j = 0 ; j < params[i].price.length ; j++){
+        values += `('${params[i].price[j]}','${params[i].price[++j]}',${id})`;
+        if(j == params[i].price.length - 1 ) break;
+        values += ",";
       }
-      values += `('full','${params[i].full}',${id++})`;
       if(i == size - 1) break;
+      id++;
       values += ",";
     }
 
@@ -179,10 +177,8 @@ app.post('/add/items' ,(req , res)=>{
       if(err) console.log(err);
       
       console.log("price saved");
-      console.log(rows);
       res.send("items saved succesfully");
     });
-
   });
 });
 
