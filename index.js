@@ -5,118 +5,119 @@ const bodyparser = require('body-parser');
 const { json } = require('express');
 
 const app = express();
-
-app.use(bodyparser.urlencoded({extended: false}));
+const port = process.env.PORT || 8000;
+app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
 
 //mail connection
 var transporter = mail.createTransport({
-    service: 'gmail',
-    auth: {
-      user: 'tushar.code05@gmail.com',
-      pass: 'bot@@123'
-    }
-  });
+  service: 'gmail',
+  auth: {
+    user: 'tushar.code05@gmail.com',
+    pass: 'bot@@123'
+  }
+});
 
 //mysql connection
 const pool = mysql.createPool({
-    connectionLimit : 10,
-    host            : 'localhost',
-    user            : 'root',
-    password        : 'password',
-    database        : 'restaurant_management'
+  connectionLimit: 10,
+  host: 'localhost',
+  user: 'root',
+  password: 'password',
+  database: 'restaurant_management'
 });
 
 //server succesfull message
-app.get('/' , (req , res)=>{
-    res.send(`server is running succesfully on port ${port}`);
+app.get('/', (req, res) => {
+  res.send(`server is running succesfully on port ${port}`);
 });
 
 //get users
-app.get('/get/users' , (req , res)=>{
-    pool.getConnection((err,connection)=>{
-        if(err) throw err;
-        console.log("connected to database");
+app.get('/get/users', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
 
-        var query = "select * from users";
+    var query = "select * from users";
 
-        connection.query(query , (err,rows)=>{
-          if(err) console.log(err);
+    connection.query(query, (err, rows) => {
+      if (err) console.log(err);
 
-          console.log(rows[0].name);
-          res.send(rows[0].name);
-        });
+      console.log(rows[0].name);
+      res.send(rows[0].name);
     });
+  });
 });
 
 //login
-app.post('/login' , (req , res)=>{
-  pool.getConnection((err,connection)=>{
-      if(err) throw err;
-      console.log("connected to database");
+app.post('/login', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
 
-      var query = `SELECT email,password FROM users where email="${req.body.email}"`;
+    var query = `SELECT email,password FROM users where email="${req.body.email}"`;
 
-      connection.query(query , (err,rows)=>{
-          if(err) console.log(err);
-          else res.send(rows);
-      });
+    connection.query(query, (err, rows) => {
+      if (err) throw err;
+      else res.send(rows);
+    });
   });
 });
 
 //add users
-app.post('/add/users' , (req , res)=>{
+app.post('/add/users', (req, res) => {
 
   //4 digit random number
   var ran = Math.floor(1000 + Math.random() * 9000);
 
-    pool.getConnection((err,connection)=>{
-        if(err) throw err;
-        console.log("connected to database");
-        const params = req.body
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+    const params = req.body
 
-        var password = `${params.name}${ran}`;
-        var email = params.email;
-         
-        console.log(`Password: ${password}`);
+    var password = `${params.name}${ran}`;
+    var email = params.email;
 
-
-        //sql query
-        connection.query(`INSERT INTO users (name,ph_no,email,res_name,tables,password) VALUES ('${params.name}','${params.ph_no}','${params.email}','${params.res_name}','${params.tables}','${password}')` , (err,rows)=>{
-            if(err) console.log(err);
-            else res.send(`data with name: ${params.name} has been added and your password has been send to ${email}`);
-        });
+    console.log(`Password: ${password}`);
 
 
-        //sending mail
-        var mailOptions = {
-            from: 'tushar.code05@gmail.com',
-            to: email,
-            subject: 'Your password! don`t share with anyone.',
-            text: `your password is "${password}"`
-          };
-          
-          transporter.sendMail(mailOptions, function(error, info){
-            if (error) {
-              console.log(error);
-            } else {
-              console.log('Email sent: ' + info.response);
-            }
-          });
+    //sql query
+    connection.query(`INSERT INTO users (name,ph_no,email,res_name,tables,password) VALUES ('${params.name}','${params.ph_no}','${params.email}','${params.res_name}','${params.tables}','${password}')`, (err, rows) => {
+      if (err) console.log(err);
+      else res.send(`data with name: ${params.name} has been added and your password has been send to ${email}`);
     });
+
+
+    //sending mail
+    var mailOptions = {
+      from: 'tushar.code05@gmail.com',
+      to: email,
+      subject: 'Your password! don`t share with anyone.',
+      text: `your password is "${password}"`
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+      }
+      else {
+        console.log('Email sent: ' + info.response);
+      }
+    });
+  });
 });
 
 //add items section
-app.post('/add/category' ,(req , res)=>{
+app.post('/add/category', (req, res) => {
 
-  pool.getConnection( (err,connection)=>{
-    if(err) throw err;
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
     console.log("connected to database");
 
     //add category
-    connection.query(`INSERT INTO category (name) VALUES ('${req.body.category}')` , (err,rows)=>{
-      if(err) console.log(err);
-          
+    connection.query(`INSERT INTO category (name) VALUES ('${req.body.category}')`, (err, rows) => {
+      if (err) console.log(err);
+
       console.log("category saved");
       console.log(`row id: ${rows.insertId}`);
       res.send("category saved");
@@ -125,32 +126,32 @@ app.post('/add/category' ,(req , res)=>{
 });
 
 //save items section
-app.post('/add/items' ,(req , res)=>{
+app.post('/add/items', (req, res) => {
 
-  pool.getConnection(async (err,connection)=>{
-    if(err) throw err;
+  pool.getConnection(async (err, connection) => {
+    if (err) throw err;
     console.log("connected to database");
 
-    let values="";
+    let values = "";
     let params = req.body;
     size = req.body.length;
 
     //making values for items query
-    for(let i = 0 ; i < size ; i++){
+    for (let i = 0; i < size; i++) {
       values += `('${params[i].name}',${params[i].category_id},'${params[i].veg_non}')`;
-      if(i==size-1) break;
+      if (i == size - 1) break;
       values += ",";
     }
 
     let id = 0;
-  
-    //add items
-    function save_items(){
-      return new Promise((resolve,reject)=>{
 
-        connection.query(`INSERT INTO items (name,category_id,veg_non) values ${values}` , (err,rows)=>{
-          if(err) console.log(err);
-          
+    //add items
+    function save_items() {
+      return new Promise((resolve, reject) => {
+
+        connection.query(`INSERT INTO items (name,category_id,veg_non) values ${values}`, (err, rows) => {
+          if (err) console.log(err);
+
           console.log("item saved");
           resolve(id = rows.insertId);
         });
@@ -160,27 +161,26 @@ app.post('/add/items' ,(req , res)=>{
     await save_items();
 
     //making values for price query
-    values ="";
-    for(let i = 0 ; i < size ; i++){
-      for(let j = 0 ; j < params[i].price.length ; j++){
+    values = "";
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < params[i].price.length; j++) {
         values += `('${params[i].price[j]}','${params[i].price[++j]}',${id})`;
-        if(j == params[i].price.length - 1 ) break;
+        if (j == params[i].price.length - 1) break;
         values += ",";
       }
-      if(i == size - 1) break;
+      if (i == size - 1) break;
       id++;
       values += ",";
     }
 
     //saving price
-    connection.query(`INSERT INTO quantity_price (type,price,item_id) values ${values}` , (err,rows)=>{
-      if(err) console.log(err);
-      
+    connection.query(`INSERT INTO quantity_price (type,price,item_id) values ${values}`, (err, rows) => {
+      if (err) console.log(err);
+
       console.log("price saved");
       res.send("items saved succesfully");
     });
   });
 });
 
-const port = process.env.PORT || 8000;
-app.listen(port , () => console.log(`server started on port ${port}`));
+app.listen(port, () => console.log(`server started on port ${port}`));
