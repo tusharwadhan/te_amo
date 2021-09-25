@@ -9,14 +9,6 @@ const app = express();
 app.use(bodyparser.urlencoded({extended: false}));
 app.use(bodyparser.json());
 
-//string slice
-function slice(str){
-  var result = "";
-  for(var i = 1 ; i < str.length -1 ; i++){
-    result += str[i];
-  }
-  return result;
-}
 //mail connection
 var transporter = mail.createTransport({
     service: 'gmail',
@@ -49,12 +41,10 @@ app.get('/get/users' , (req , res)=>{
         var query = "select * from users";
 
         connection.query(query , (err,rows)=>{
-            if(err) console.log(err);
-            else{ 
-              rows = JSON.stringify(rows);
-              var obj = JSON.parse(slice(rows));
-              res.send(obj.res_name);
-            }
+          if(err) console.log(err);
+
+          console.log(rows[0].name);
+          res.send(rows[0].name);
         });
     });
 });
@@ -116,31 +106,85 @@ app.post('/add/users' , (req , res)=>{
     });
 });
 
-//add items
-app.post('/add/items' , (req , res)=>{
-  pool.getConnection((err,connection)=>{
-      if(err) throw err;
-      console.log("connected to database");
+//add items section
+app.post('/add/category' ,(req , res)=>{
 
-      var category = `${req.body.category}`;
+  pool.getConnection( (err,connection)=>{
+    if(err) throw err;
+    console.log("connected to database");
 
-      var query = `SELECT * FROM category WHERE name="${category}"`;
-
-      connection.query(query , (err,rows)=>{
-        if(err) console.log(err);
-        else{
-          //if there is no cotegory
-          if(rows = '[]'){
+    //add category
+    connection.query(`INSERT INTO category (name) VALUES ('${req.body.category}')` , (err,rows)=>{
+      if(err) console.log(err);
           
-            connection.query(`INSERT INTO category (name) VALUES ("${category}")` , (err,rows)=>{
-              if(err)throw err;
-              else res.send("category saved");
-            });
-          }
-        }  
-      });
+      console.log("category saved");
+      console.log(`row id: ${rows.insertId}`);
+      res.send("category saved");
+    });
   });
 });
- 
+
+//save items section
+app.post('/add/items' ,(req , res)=>{
+
+  //connecting to database
+  pool.getConnection(async (err,connection)=>{
+    if(err) throw err;
+    console.log("connected to database");
+
+    let values="";
+    let params = req.body;
+
+    size = req.body.length;
+
+    //making values for items query
+    for(let i = 0 ; i < size ; i++){
+      values += `('${params[i].name}',${params[i].category_id},'${params[i].veg_non}')`;
+      if(i==size-1) break;
+      values += ",";
+    }
+
+    let id = 0;
+  
+    //add items
+    function save_items(){
+      return new Promise((resolve,reject)=>{
+
+        connection.query(`INSERT INTO items (name,category_id,veg_non) values ${values}` , (err,rows)=>{
+          if(err) console.log(err);
+          
+          console.log("item saved");
+          console.log(rows);
+          resolve(id = rows.insertId);
+        });
+
+      });
+    }
+    await save_items();
+    console.log(id);
+
+    //making values for price query
+    values ="";
+    for(let i = 0 ; i < size ; i++){
+      if(params[i].half != undefined) {
+        values += `('half','${params[i].half}',${id}),`;
+      }
+      values += `('full','${params[i].full}',${id++})`;
+      if(i == size - 1) break;
+      values += ",";
+    }
+
+    //saving price
+    connection.query(`INSERT INTO quantity_price (type,price,item_id) values ${values}` , (err,rows)=>{
+      if(err) console.log(err);
+      
+      console.log("price saved");
+      console.log(rows);
+      res.send("items saved succesfully");
+    });
+
+  });
+});
+
 const port = process.env.PORT || 8000;
 app.listen(port , () => console.log(`server started on port ${port}`));
