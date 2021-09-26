@@ -32,23 +32,6 @@ app.get('/', (req, res) => {
   res.send(`server is running succesfully on port ${port}`);
 });
 
-//get users
-app.get('/get/users', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    var query = "select * from users";
-
-    connection.query(query, (err, rows) => {
-      if (err) console.log(err);
-
-      console.log(rows[0].name);
-      res.send(rows[0].name);
-    });
-  });
-});
-
 //login
 app.post('/login', (req, res) => {
   pool.getConnection((err, connection) => {
@@ -82,8 +65,8 @@ app.post('/add/users', (req, res) => {
 
 
     //sql query
-    connection.query(`INSERT INTO users (name,ph_no,email,res_name,tables,password) VALUES ('${params.name}','${params.ph_no}','${params.email}','${params.res_name}','${params.tables}','${password}')`, (err, rows) => {
-      if (err) console.log(err);
+    connection.query('INSERT INTO users SET ?, `password` = ?',[params,password], (err, rows) => {
+      if (err) throw err;
       else res.send(`data with name: ${params.name} has been added and your password has been send to ${email}`);
     });
 
@@ -150,7 +133,7 @@ app.post('/add/items', (req, res) => {
       return new Promise((resolve, reject) => {
 
         connection.query(`INSERT INTO items (name,category_id,veg_non) values ${values}`, (err, rows) => {
-          if (err) console.log(err);
+          if (err) throw err;
 
           console.log("item saved");
           resolve(id = rows.insertId);
@@ -175,10 +158,68 @@ app.post('/add/items', (req, res) => {
 
     //saving price
     connection.query(`INSERT INTO quantity_price (type,price,item_id) values ${values}`, (err, rows) => {
-      if (err) console.log(err);
+      if (err) throw err;
 
       console.log("price saved");
       res.send("items saved succesfully");
+    });
+  });
+});
+
+//get users
+app.get('/get/users', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    var query = "SELECT * FROM users";
+
+    connection.query(query, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
+//get category
+app.get('/get/category', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    var query = "SELECT * FROM category";
+
+    connection.query(query, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
+//get items
+app.get('/get/items', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    var query = "SELECT * FROM items";
+
+    connection.query(query, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
+//get items with category id
+app.post('/get/items', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    connection.query('SELECT * FROM items WHERE ?',req.body, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
     });
   });
 });
