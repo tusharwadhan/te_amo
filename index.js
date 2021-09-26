@@ -166,15 +166,60 @@ app.post('/add/items', (req, res) => {
   });
 });
 
+//current table section
+app.post('/add/order', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    let values = "";
+    let params = req.body;
+
+    for (let i = 0; i < params.length; i++) {
+      values += `('${params[i].item_name}','${params[i].quantity}','${params[i].veg_non}','${params[i].price}',${params[i].table_no})`;
+      if (i == params.length - 1) break;
+      values += ",";
+    }
+
+    connection.query(`INSERT INTO current_order (item_name,quantity,veg_non,price,table_no) VALUES ${values}` , (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
+app.post('/get/order', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    connection.query('SELECT * FROM current_order WHERE ?',req.body, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
+app.delete('/delete/order', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    connection.query('DELETE FROM current_order WHERE ?',req.body, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
+
 //get users
 app.get('/get/users', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
     console.log("connected to database");
 
-    var query = "SELECT * FROM users";
-
-    connection.query(query, (err, rows) => {
+    connection.query("SELECT * FROM users", (err, rows) => {
       if (err) throw err;
       res.send(rows);
     });
