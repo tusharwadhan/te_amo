@@ -32,21 +32,6 @@ app.get('/', (req, res) => {
   res.send(`server is running succesfully on port ${port}`);
 });
 
-//login
-app.post('/login', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    var query = `SELECT email,password FROM users where email="${req.body.email}"`;
-
-    connection.query(query, (err, rows) => {
-      if (err) throw err;
-      else res.send(rows);
-    });
-  });
-});
-
 //add users
 app.post('/add/users', (req, res) => {
 
@@ -90,7 +75,35 @@ app.post('/add/users', (req, res) => {
   });
 });
 
-//add items section
+//get users
+app.get('/get/users', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    connection.query("SELECT * FROM users", (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
+//login
+app.post('/login', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    var query = `SELECT email,password FROM users where email="${req.body.email}"`;
+
+    connection.query(query, (err, rows) => {
+      if (err) throw err;
+      else res.send(rows);
+    });
+  });
+});
+
+//add category section
 app.post('/add/category', (req, res) => {
 
   pool.getConnection((err, connection) => {
@@ -104,6 +117,21 @@ app.post('/add/category', (req, res) => {
       console.log("category saved");
       console.log(`row id: ${rows.insertId}`);
       res.send("category saved");
+    });
+  });
+});
+
+//get category
+app.get('/get/category', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    var query = "SELECT * FROM category";
+
+    connection.query(query, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
     });
   });
 });
@@ -166,6 +194,34 @@ app.post('/add/items', (req, res) => {
   });
 });
 
+//get all items
+app.get('/get/items', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    var query = "SELECT * FROM items";
+
+    connection.query(query, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
+//get items with category id
+app.post('/get/items', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    connection.query('SELECT * FROM items WHERE ?',req.body, (err, rows) => {
+      if (err) throw err;
+      res.send(rows);
+    });
+  });
+});
+
 //current table section
 app.post('/add/order', (req, res) => {
   pool.getConnection((err, connection) => {
@@ -188,6 +244,7 @@ app.post('/add/order', (req, res) => {
   });
 });
 
+//get orders with table_no
 app.post('/get/order', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
@@ -200,69 +257,13 @@ app.post('/get/order', (req, res) => {
   });
 });
 
+//delete order with order_id
 app.delete('/delete/order', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
     console.log("connected to database");
 
     connection.query('DELETE FROM current_order WHERE ?',req.body, (err, rows) => {
-      if (err) throw err;
-      res.send(rows);
-    });
-  });
-});
-
-
-//get users
-app.get('/get/users', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    connection.query("SELECT * FROM users", (err, rows) => {
-      if (err) throw err;
-      res.send(rows);
-    });
-  });
-});
-
-//get category
-app.get('/get/category', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    var query = "SELECT * FROM category";
-
-    connection.query(query, (err, rows) => {
-      if (err) throw err;
-      res.send(rows);
-    });
-  });
-});
-
-//get items
-app.get('/get/items', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    var query = "SELECT * FROM items";
-
-    connection.query(query, (err, rows) => {
-      if (err) throw err;
-      res.send(rows);
-    });
-  });
-});
-
-//get items with category id
-app.post('/get/items', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    connection.query('SELECT * FROM items WHERE ?',req.body, (err, rows) => {
       if (err) throw err;
       res.send(rows);
     });
