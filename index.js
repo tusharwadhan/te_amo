@@ -18,6 +18,8 @@ var transporter = mail.createTransport({
   }
 });
 
+const obj = {"success": true , "message": "" , "data":""};
+
 //mysql connection
 const pool = mysql.createPool({
   connectionLimit: 10,
@@ -33,7 +35,7 @@ app.get('/', (req, res) => {
 });
 
 //add users
-app.post('/add/users', (req, res) => {
+app.post('/users', (req, res) => {
 
   //4 digit random number
   var ran = Math.floor(1000 + Math.random() * 9000);
@@ -76,35 +78,98 @@ app.post('/add/users', (req, res) => {
 });
 
 //get users
-app.get('/get/users', (req, res) => {
+app.get('/users', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
     console.log("connected to database");
 
     connection.query("SELECT * FROM users", (err, rows) => {
       if (err) throw err;
-      res.send(rows);
+      
+      obj.success = true;
+      obj.message = "api run succesfully";
+      obj.data = rows;
+      res.send(obj);
     });
   });
 });
 
 //login
 app.post('/login', (req, res) => {
-  pool.getConnection((err, connection) => {
+  pool.getConnection(async(err, connection) => {
     if (err) throw err;
     console.log("connected to database");
 
-    var query = `SELECT email,password FROM users where email="${req.body.email}"`;
+    let response;
+    function get() {
+      return new Promise((resolve, reject) => {
 
-    connection.query(query, (err, rows) => {
-      if (err) throw err;
-      else res.send(rows);
-    });
+        connection.query(`SELECT email,password FROM users WHERE email="${req.body.email}"`, (err, rows) => {
+          if (err) throw err;
+          resolve(response = rows);
+        });
+        
+      });
+    }
+
+    function check1() {
+      return new Promise((resolve, reject) => {
+
+        if(JSON.stringify(response) == "[]"){
+          obj.success = true;
+          obj.message = "user not found";
+          obj.data = response
+          resolve(res.send(obj));
+        }
+        else{
+          resolve(console.log("breaked"));
+        }
+        
+      });
+    }
+
+    function check2() {
+      return new Promise((resolve, reject) => {
+
+        if(response[0].password != req.body.password){
+          obj.success = true;
+          obj.message = "password does not match";
+          obj.data = {};
+          resolve(res.send(obj));
+        }
+        else{
+          resolve(console.log("breaked"));
+        }
+        
+      });
+    }
+
+    function check3() {
+      return new Promise((resolve, reject) => {
+
+        if(response[0].password == req.body.password){
+          obj.success = true;
+          obj.message = "password matched successfully";
+          obj.data = response;
+          resolve(res.send(obj));
+        }
+        else{
+          resolve(console.log("breaked"));
+        }
+        
+      });
+    }
+
+    await get();
+    await check1();
+    await check2();
+    await check3();
+
   });
 });
 
 //add category section
-app.post('/add/category', (req, res) => {
+app.post('/category', (req, res) => {
 
   pool.getConnection((err, connection) => {
     if (err) throw err;
@@ -122,7 +187,7 @@ app.post('/add/category', (req, res) => {
 });
 
 //get category
-app.get('/get/category', (req, res) => {
+app.get('/category', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
     console.log("connected to database");
@@ -137,7 +202,7 @@ app.get('/get/category', (req, res) => {
 });
 
 //save items section
-app.post('/add/items', (req, res) => {
+app.post('/items', (req, res) => {
 
   pool.getConnection(async (err, connection) => {
     if (err) throw err;
@@ -195,35 +260,125 @@ app.post('/add/items', (req, res) => {
 });
 
 //get all items
-app.get('/get/items', (req, res) => {
-  pool.getConnection((err, connection) => {
+app.get('/items', (req, res) => {
+  pool.getConnection(async(err, connection) => {
     if (err) throw err;
     console.log("connected to database");
 
-    var query = "SELECT * FROM items";
+    let items;
+    let price;
 
-    connection.query(query, (err, rows) => {
-      if (err) throw err;
-      res.send(rows);
-    });
+    //getting items
+    function get_items() {
+      return new Promise((resolve, reject) => {
+
+        connection.query("SELECT * FROM items", (err, rows) => {
+          if (err) throw err;
+          resolve(items = rows);
+        });
+
+      });
+    }
+
+    //getting price
+    function get_price() {
+      return new Promise((resolve, reject) => {
+
+        connection.query("SELECT * FROM quantity_price", (err, rows) => {
+          if (err) throw err;
+          resolve(price = rows);
+        });
+
+      });
+    }
+    await get_items();
+    await get_price();
+
+    //adding price in items
+    for(let i = 0 ; i < items.length ; i++){
+      let arr = "[";
+      for(let j = 0 ; j < price.length ; j++){
+        if(items[i].id == price[j].item_id){
+          arr += JSON.stringify(price[j]);
+          if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
+            arr += "]";
+            break;
+          }
+          arr += ",";
+        }
+      }
+      items[i].quantity_price = JSON.parse(arr);
+    }
+
+    //sending response
+    obj.success = true;
+    obj.message = "get items successfully";
+    obj.data = items;
+    res.send(obj);
   });
 });
 
 //get items with category id
-app.post('/get/items', (req, res) => {
-  pool.getConnection((err, connection) => {
+app.post('/filteritems', (req, res) => {
+  pool.getConnection(async (err, connection) => {
     if (err) throw err;
     console.log("connected to database");
 
-    connection.query('SELECT * FROM items WHERE ?',req.body, (err, rows) => {
-      if (err) throw err;
-      res.send(rows);
-    });
+    let items;
+    let price;
+
+    //getting items
+    function get_items() {
+      return new Promise((resolve, reject) => {
+
+        connection.query('SELECT * FROM items WHERE ?',req.body, (err, rows) => {
+          if (err) throw err;
+          resolve(items = rows);
+        });
+
+      });
+    }
+
+    //getting price
+    function get_price() {
+      return new Promise((resolve, reject) => {
+
+        connection.query("SELECT * FROM quantity_price", (err, rows) => {
+          if (err) throw err;
+          resolve(price = rows);
+        });
+
+      });
+    }
+
+    await get_items();
+    await get_price();
+
+    //adding price in items
+    for(let i = 0 ; i < items.length ; i++){
+      let arr = "[";
+      for(let j = 0 ; j < price.length ; j++){
+        if(items[i].id == price[j].item_id){
+          arr += JSON.stringify(price[j]);
+          if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
+            arr += "]";
+            break;
+          }
+          arr += ",";
+        }
+      }
+      items[i].quantity_price = JSON.parse(arr);
+    }
+
+    obj.success = true;
+    obj.message = `items get succesfully with category no:'${req.body.category_id}'`;
+    obj.data = items;
+    res.send(obj);
   });
 });
 
 //current table section
-app.post('/add/order', (req, res) => {
+app.post('/order', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
     console.log("connected to database");
@@ -245,20 +400,24 @@ app.post('/add/order', (req, res) => {
 });
 
 //get orders with table_no
-app.post('/get/order', (req, res) => {
+app.get('/order/:table_no', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
     console.log("connected to database");
 
-    connection.query('SELECT * FROM current_order WHERE ?',req.body, (err, rows) => {
+    connection.query('SELECT * FROM current_order WHERE table_no=?',req.params.table_no, (err, rows) => {
       if (err) throw err;
-      res.send(rows);
+
+      obj.success = true;
+      obj.message = `orders get succesfully with table no:'${req.params.table_no}'`;
+      obj.data = rows;
+      res.send(obj);
     });
   });
 });
 
 //delete order with order_id
-app.delete('/delete/order', (req, res) => {
+app.delete('/order', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
     console.log("connected to database");
