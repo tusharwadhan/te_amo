@@ -196,7 +196,11 @@ app.get('/category', (req, res) => {
 
     connection.query(query, (err, rows) => {
       if (err) throw err;
-      res.send(rows);
+      
+      obj.success = true;
+      obj.message = "category get successfully";
+      obj.data = rows;
+      res.send(obj);
     });
   });
 });
@@ -377,7 +381,7 @@ app.post('/filteritems', (req, res) => {
   });
 });
 
-//current table section
+//current table section(add order)
 app.post('/order', (req, res) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
@@ -424,7 +428,7 @@ app.delete('/order', (req, res) => {
 
     connection.query('DELETE FROM current_order WHERE ?',req.body, (err, rows) => {
       if (err) throw err;
-      res.send(rows);
+      res.send("order deleted successfully");
     });
   });
 });
