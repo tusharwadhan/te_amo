@@ -433,4 +433,61 @@ app.delete('/order', (req, res) => {
   });
 });
 
+// order finish section
+app.post('/orderfinish', (req, res) => {
+  pool.getConnection(async(err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    let price;
+
+    function get_price() {
+      return new Promise((resolve, reject) => {
+
+        connection.query('SELECT price FROM current_order WHERE ?',req.body, (err, rows) => {
+          if (err) throw err;
+          resolve(price = rows);
+        });
+
+      });
+    }
+    
+    await get_price();
+    let total = 0;
+
+    for(let i = 0 ; i < price.length ; i++){
+      let p = parseFloat(price[i].price);
+      total += p;
+    }
+
+    connection.query('INSERT INTO `transactions` (`id`, `table`, `amount`, `date`) VALUES (NULL,? , ?, CURRENT_DATE())' , [req.body.table_no,JSON.stringify(total)], (err, rows) => {
+      if (err) throw err;
+      console.log("transaction added");
+    });
+
+    connection.query('DELETE FROM current_order WHERE ?',req.body, (err, rows) => {
+      if (err) throw err;
+      console.log("order deleted successfully");
+      res.send("operation done successfully");
+    });
+  });
+});
+
+//get transaction
+app.get('/transactions', (req, res) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    console.log("connected to database");
+
+    connection.query('SELECT * FROM transactions', (err, rows) => {
+      if (err) throw err;
+
+      obj.success = true;
+      obj.message = `transactions get succesfully`;
+      obj.data = rows;
+      res.send(obj);
+    });
+  });
+});
+
 app.listen(port, () => console.log(`server started on port ${port}`));
