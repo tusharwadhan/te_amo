@@ -18,6 +18,7 @@ var transporter = mail.createTransport({
   }
 });
 
+// result object
 const obj = {"success": true , "message": "" , "data":""};
 
 //mysql connection
