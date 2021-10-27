@@ -9,6 +9,22 @@ const port = process.env.PORT || 8000;
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
 
+function get(qrr) {
+  return new Promise((resolve, reject) => {
+    pool.getConnection((err, connection) => {
+      if (err) throw err;
+      console.log("connected to database");
+  
+      connection.query(qrr, (err, rows) => {
+        if (err) throw err;
+
+        obj.success = true;
+        obj.message = `transactions get succesfully`;
+        resolve(obj.data = rows);
+      });
+    });
+  });
+}
 //mail connection
 var transporter = mail.createTransport({
   service: 'gmail',
@@ -79,20 +95,9 @@ app.post('/users', (req, res) => {
 });
 
 //get users
-app.get('/users', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    connection.query("SELECT * FROM users", (err, rows) => {
-      if (err) throw err;
-      
-      obj.success = true;
-      obj.message = "api run succesfully";
-      obj.data = rows;
-      res.send(obj);
-    });
-  });
+app.get('/users', async (req, res) => {
+  await get("select * from users")
+  res.send(obj);
 });
 
 //login
@@ -188,22 +193,9 @@ app.post('/category', (req, res) => {
 });
 
 //get category
-app.get('/category', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    var query = "SELECT * FROM category";
-
-    connection.query(query, (err, rows) => {
-      if (err) throw err;
-      
-      obj.success = true;
-      obj.message = "category get successfully";
-      obj.data = rows;
-      res.send(obj);
-    });
-  });
+app.get('/category',async (req, res) => {
+  await get("SELECT * FROM category");
+  res.send(obj);
 });
 
 //save items section
@@ -265,121 +257,65 @@ app.post('/items', (req, res) => {
 });
 
 //get all items
-app.get('/items', (req, res) => {
-  pool.getConnection(async(err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
+app.get('/items',async (req, res) => {
 
-    let items;
-    let price;
+  await get("SELECT * FROM items");
+  let items = obj.data;
+  await get("SELECT * FROM quantity_price");
+  let price = obj.data;
 
-    //getting items
-    function get_items() {
-      return new Promise((resolve, reject) => {
-
-        connection.query("SELECT * FROM items", (err, rows) => {
-          if (err) throw err;
-          resolve(items = rows);
-        });
-
-      });
-    }
-
-    //getting price
-    function get_price() {
-      return new Promise((resolve, reject) => {
-
-        connection.query("SELECT * FROM quantity_price", (err, rows) => {
-          if (err) throw err;
-          resolve(price = rows);
-        });
-
-      });
-    }
-    await get_items();
-    await get_price();
-
-    //adding price in items
-    for(let i = 0 ; i < items.length ; i++){
-      let arr = "[";
-      for(let j = 0 ; j < price.length ; j++){
-        if(items[i].id == price[j].item_id){
-          arr += JSON.stringify(price[j]);
-          if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
-            arr += "]";
-            break;
-          }
-          arr += ",";
+  // combining items with price
+  for(let i = 0 ; i < items.length ; i++){
+    let arr = "[";
+    for(let j = 0 ; j < price.length ; j++){
+      if(items[i].id == price[j].item_id){
+        arr += JSON.stringify(price[j]);
+        if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
+          arr += "]";
+          break;
         }
+        arr += ",";
       }
-      items[i].quantity_price = JSON.parse(arr);
     }
+    items[i].quantity_price = JSON.parse(arr);
+  }
 
-    //sending response
-    obj.success = true;
-    obj.message = "get items successfully";
-    obj.data = items;
-    res.send(obj);
-  });
+  //sending response
+  obj.success = true;
+  obj.message = "get items successfully";
+  obj.data = items;
+  res.send(obj);
 });
 
 //get items with category id
-app.post('/filteritems', (req, res) => {
-  pool.getConnection(async (err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
+app.post('/filteritems',async (req, res) => {
 
-    let items;
-    let price;
+  await get(`SELECT * FROM items WHERE category_id = ${req.body.category_id}`);
+  let items = obj.data;
+  await get("SELECT * FROM quantity_price");
+  let price = obj.data;
 
-    //getting items
-    function get_items() {
-      return new Promise((resolve, reject) => {
-
-        connection.query('SELECT * FROM items WHERE ?',req.body, (err, rows) => {
-          if (err) throw err;
-          resolve(items = rows);
-        });
-
-      });
-    }
-
-    //getting price
-    function get_price() {
-      return new Promise((resolve, reject) => {
-
-        connection.query("SELECT * FROM quantity_price", (err, rows) => {
-          if (err) throw err;
-          resolve(price = rows);
-        });
-
-      });
-    }
-
-    await get_items();
-    await get_price();
-
-    //adding price in items
-    for(let i = 0 ; i < items.length ; i++){
-      let arr = "[";
-      for(let j = 0 ; j < price.length ; j++){
-        if(items[i].id == price[j].item_id){
-          arr += JSON.stringify(price[j]);
-          if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
-            arr += "]";
-            break;
-          }
-          arr += ",";
+  //combining items with price
+  for(let i = 0 ; i < items.length ; i++){
+    let arr = "[";
+    for(let j = 0 ; j < price.length ; j++){
+      if(items[i].id == price[j].item_id){
+        arr += JSON.stringify(price[j]);
+        if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
+          arr += "]";
+          break;
         }
+        arr += ",";
       }
-      items[i].quantity_price = JSON.parse(arr);
     }
+    items[i].quantity_price = JSON.parse(arr);
+  }
 
-    obj.success = true;
-    obj.message = `items get succesfully with category no:'${req.body.category_id}'`;
-    obj.data = items;
-    res.send(obj);
-  });
+  //sending response
+  obj.success = true;
+  obj.message = `items get succesfully with category no:'${req.body.category_id}'`;
+  obj.data = items;
+  res.send(obj);
 });
 
 //current table section(add order)
@@ -405,20 +341,11 @@ app.post('/order', (req, res) => {
 });
 
 //get orders with table_no
-app.get('/order/:table_no', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
+app.get('/order/:table_no',async (req, res) => {
 
-    connection.query('SELECT * FROM current_order WHERE table_no=?',req.params.table_no, (err, rows) => {
-      if (err) throw err;
-
-      obj.success = true;
-      obj.message = `orders get succesfully with table no:'${req.params.table_no}'`;
-      obj.data = rows;
-      res.send(obj);
-    });
-  });
+  await get(`SELECT * FROM current_order WHERE table_no = ${req.params.table_no}`);
+  obj.message = `orders get succesfully with table no:'${req.params.table_no}'`;
+  res.send(obj);
 });
 
 //delete order with order_id
@@ -475,20 +402,10 @@ app.post('/orderfinish', (req, res) => {
 });
 
 //get transaction
-app.get('/transactions', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
+app.get('/transactions',async (req, res) => {
 
-    connection.query('SELECT * FROM transactions', (err, rows) => {
-      if (err) throw err;
-
-      obj.success = true;
-      obj.message = `transactions get succesfully`;
-      obj.data = rows;
-      res.send(obj);
-    });
-  });
+  await get('SELECT * FROM transactions');
+  res.send(obj);
 });
 
 app.listen(port, () => console.log(`server started on port ${port}`));
