@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql')
+const mongoose = require('mongoose');
 const mail = require('nodemailer');
 const bodyparser = require('body-parser');
 const { json } = require('express');
@@ -9,22 +9,6 @@ const port = process.env.PORT || 8000;
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
 
-function get(qrr) {
-  return new Promise((resolve, reject) => {
-    pool.getConnection((err, connection) => {
-      if (err) throw err;
-      console.log("connected to database");
-  
-      connection.query(qrr, (err, rows) => {
-        if (err) throw err;
-
-        obj.success = true;
-        obj.message = `transactions get succesfully`;
-        resolve(obj.data = rows);
-      });
-    });
-  });
-}
 //mail connection
 var transporter = mail.createTransport({
   service: 'gmail',
@@ -34,17 +18,77 @@ var transporter = mail.createTransport({
   }
 });
 
-// result object
-const obj = {"success": true , "message": "" , "data":""};
+//mongoDB connection
+mongoose.connect('mongodb://localhost:27017/TeAmo')
+.then(()=>{
+  console.log("Connected To DataBase: TeAmoDB!");
+})
+.catch(err => {
+  console.log("Can't connect to database!");
+  console.log(err);
+})
 
-//mysql connection
-const pool = mysql.createPool({
-  connectionLimit: 10,
-  host: 'localhost',
-  user: 'root',
-  password: 'password',
-  database: 'restaurant_management'
+// category schema and model
+const CategorySchema = new mongoose.Schema({
+  name: String
 });
+const category = mongoose.model('category', CategorySchema);
+
+// currentOrder schema and model
+const currentOrderSchema = new mongoose.Schema({
+  item_name: String,
+  quantity: String,
+  isVeg: Boolean,
+  price: Number,
+  table_no: Number 
+});
+const current_Order = mongoose.model('current_order', currentOrderSchema);
+
+// items schema and model
+const itemsSchema = new mongoose.Schema({
+  name: String,
+  category_id: String,
+  isVeg: Boolean
+});
+const items = mongoose.model('items', itemsSchema);
+
+//quantity_price schema and model
+const quantityPriceSchema = new mongoose.Schema({
+  type: String,
+  price: Number,
+  item_id: String
+});
+const quantity_price = mongoose.model('quantity_price', quantityPriceSchema);
+
+//transactions schema and model
+const transactionSchema = new mongoose.Schema({
+  table: Number,
+  amount: Number,
+  date: String
+});
+const transactions = mongoose.model('transactions', transactionSchema);
+
+//users schema and model
+const usersSchema = new mongoose.Schema({
+  name: String,
+  ph_no: String,
+  email: String,
+  res_name: String,
+  tables: Number,
+  password: String
+});
+const users = mongoose.model('users', usersSchema);
+
+// result object
+var obj = {"success": true , "message": "" , "data":""};
+
+//reset obj (for => after sending response)
+function reset(){
+  obj.success = true;
+  obj.message = "";
+  obj.data = "";
+  console.log("obj reset done!");
+}
 
 //server succesfull message
 app.get('/', (req, res) => {
@@ -52,52 +96,53 @@ app.get('/', (req, res) => {
 });
 
 //add users
-app.post('/users', (req, res) => {
+app.post('/users',async (req, res) => {
 
   //4 digit random number
-  var ran = Math.floor(1000 + Math.random() * 9000);
+  var ran = await Math.floor(1000 + Math.random() * 9000);
 
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-    const params = req.body
+  //making password and saving
+  const params = req.body[0]
+  var password = `${params.name}${ran}`;
+  var email = params.email;
+  console.log(`Password: ${password}`);
+  req.body[0].password = password;
 
-    var password = `${params.name}${ran}`;
-    var email = params.email;
+  //inserting data into db
+  await users.insertMany(req.body, function(error, docs) {
+    if(error) throw error;
 
-    console.log(`Password: ${password}`);
-
-
-    //sql query
-    connection.query('INSERT INTO users SET ?, `password` = ?',[params,password], (err, rows) => {
-      if (err) throw err;
-      else res.send(`data with name: ${params.name} has been added and your password has been send to ${email}`);
-    });
-
-
-    //sending mail
-    var mailOptions = {
-      from: 'tushar.code05@gmail.com',
-      to: email,
-      subject: 'Your password! don`t share with anyone.',
-      text: `your password is "${password}"`
-    };
-
-    transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log(error);
-      }
-      else {
-        console.log('Email sent: ' + info.response);
-      }
-    });
+    console.log("user saved!");
+    obj.message = "user saved successfully!";
+    res.send(obj);
+    reset();
   });
+
+  //sending mail
+  var mailOptions = {
+    from: 'tushar.code05@gmail.com',
+    to: email,
+    subject: 'Your password! don`t share with anyone.',
+    text: `your password is "${password}"`
+  };
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+    }
+    else {
+      console.log('Email sent: ' + info.response);
+    }
+  });
+
 });
 
 //get users
 app.get('/users', async (req, res) => {
-  await get("select * from users")
+  const result = await users.find({});
+  obj.message = "users get successfully!";
+  obj.data = result;
   res.send(obj);
+  reset();
 });
 
 //login
@@ -175,27 +220,24 @@ app.post('/login', (req, res) => {
 });
 
 //add category section
-app.post('/category', (req, res) => {
+app.post('/category',async (req, res) => {
+  await category.insertMany(req.body, function(error, docs) {
+    if(error) throw error;
 
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    //add category
-    connection.query(`INSERT INTO category (name) VALUES ('${req.body.category}')`, (err, rows) => {
-      if (err) console.log(err);
-
-      console.log("category saved");
-      console.log(`row id: ${rows.insertId}`);
-      res.send("category saved");
-    });
+    console.log("category saved!");
+    obj.message = "category saved successfully!";
+    res.send(obj);
+    reset();
   });
 });
 
 //get category
 app.get('/category',async (req, res) => {
-  await get("SELECT * FROM category");
+  const result = await category.find({});
+  obj.message = "category get successfully! ";
+  obj.data = result;
   res.send(obj);
+  reset();
 });
 
 //save items section
