@@ -2,21 +2,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyparser = require('body-parser');
 const { json } = require('express');
-// const mail = require('nodemailer');
 
 const app = express();
 const port = process.env.PORT || 8000;
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
-
-// //mail connection
-// var transporter = mail.createTransport({
-//   service: 'gmail',
-//   auth: {
-//     user: 'tushar.code05@gmail.com',
-//     pass: 'bot@@123'
-//   }
-// });
 
 //mongoDB connection
 mongoose.connect('mongodb://localhost:27017/TeAmo')
@@ -80,59 +70,41 @@ const usersSchema = new mongoose.Schema({
 const users = mongoose.model('users', usersSchema);
 
 // result object
-var obj = {"success": true , "message": "" , "data":""};
+var obj = {"status": true , "message": "" , "data":""};
 
 //reset obj (for => after sending response)
 function reset(){
-  obj.success = true;
+  obj.status = true;
   obj.message = "";
   obj.data = "";
   console.log("obj reset done!");
 }
 
 //server succesfull message
-app.get('/', (req, res) => {
-  res.send(`server is running succesfully on port ${port}`);
+app.get('/',async (req, res) => {
+  // res.send(`server is running succesfully on port ${port}`);
+  const item  = await items.find({});
+  res.send(item);
 });
 
 //add users
 app.post('/users',async (req, res) => {
 
-  //4 digit random number
-  // var ran = await Math.floor(1000 + Math.random() * 9000);
-
-  //making password and saving
-  // const params = req.body[0]
-  // var password = `${params.name}${ran}`;
-  // var email = params.email;
-  // console.log(`Password: ${password}`);
-  // req.body[0].password = password;
-
   //inserting data into db
   await users.insertMany(req.body, function(error, docs) {
-    if(error) throw error;
-
+    if(error){
+      obj.status = false;
+      obj.message = "can't save user";
+      res.send(obj);
+      reset();
+      return;
+    }
+    
     console.log("user saved!");
     obj.message = `user with name: ${req.body[0].name} has been saved successfully!`;
     res.send(obj);
     reset();
   });
-
-  //sending mail
-  // var mailOptions = {
-  //   from: 'tushar.code05@gmail.com',
-  //   to: email,
-  //   subject: 'Your password! don`t share with anyone.',
-  //   text: `your password is "${password}"`
-  // };
-  // transporter.sendMail(mailOptions, function (error, info) {
-  //   if (error) {
-  //     console.log(error);
-  //   }
-  //   else {
-  //     console.log('Email sent: ' + info.response);
-  //   }
-  // });
 
 });
 
@@ -147,85 +119,38 @@ app.get('/users', async (req, res) => {
 });
 
 //login
-app.post('/login', (req, res) => {
-  pool.getConnection(async(err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
+app.post('/login',async (req, res) => {
 
-    let response;
-    function get() {
-      return new Promise((resolve, reject) => {
-
-        connection.query(`SELECT email,password FROM users WHERE email="${req.body.email}"`, (err, rows) => {
-          if (err) throw err;
-          resolve(response = rows);
-        });
-        
-      });
-    }
-
-    function check1() {
-      return new Promise((resolve, reject) => {
-
-        if(JSON.stringify(response) == "[]"){
-          obj.success = true;
-          obj.message = "user not found";
-          obj.data = response
-          resolve(res.send(obj));
-        }
-        else{
-          resolve(console.log("breaked"));
-        }
-        
-      });
-    }
-
-    function check2() {
-      return new Promise((resolve, reject) => {
-
-        if(response[0].password != req.body.password){
-          obj.success = true;
-          obj.message = "password does not match";
-          obj.data = {};
-          resolve(res.send(obj));
-        }
-        else{
-          resolve(console.log("breaked"));
-        }
-        
-      });
-    }
-
-    function check3() {
-      return new Promise((resolve, reject) => {
-
-        if(response[0].password == req.body.password){
-          obj.success = true;
-          obj.message = "password matched successfully";
-          obj.data = response;
-          resolve(res.send(obj));
-        }
-        else{
-          resolve(console.log("breaked"));
-        }
-        
-      });
-    }
-
-    await get();
-    await check1();
-    await check2();
-    await check3();
-
-  });
+  const result = await users.find({email:req.body[0].email});
+  if(result[0]==undefined){
+    obj.message = "user not found!";
+    res.send(obj);
+    reset();
+  }
+  else if(result[0].password != req.body[0].password){
+    obj.message = `password not matched for email: ${req.body[0].email}`;
+    res.send(obj);
+    reset();
+  }
+  else{
+    obj.message = "password matched successfully!";
+    res.send(obj);
+    reset();
+  }
 });
 
 //add category section
 app.post('/category',async (req, res) => {
-  await category.insertMany(req.body, function(error, docs) {
-    if(error) throw error;
+  await category.insertMany(req.body,(error, docs)=>{
+    if(error){
+      obj.status = false;
+      obj.message = "can't save category";
+      res.send(obj);
+      reset();
+      return;
+    }
 
-    console.log("category saved!");
+    console.log("category saved!");;
     obj.message = "category saved successfully!";
     res.send(obj);
     reset();
@@ -242,86 +167,89 @@ app.get('/category',async (req, res) => {
 });
 
 //save items section
-app.post('/items', (req, res) => {
+app.post('/items',async(req, res)=>{
 
-  pool.getConnection(async (err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
+  var data;
 
-    let values = "";
-    let params = req.body;
-    size = req.body.length;
-
-    //making values for items query
-    for (let i = 0; i < size; i++) {
-      values += `('${params[i].name}',${params[i].category_id},'${params[i].veg_non}')`;
-      if (i == size - 1) break;
-      values += ",";
-    }
-
-    let id = 0;
-
-    //add items
-    function save_items() {
-      return new Promise((resolve, reject) => {
-
-        connection.query(`INSERT INTO items (name,category_id,veg_non) values ${values}`, (err, rows) => {
-          if (err) throw err;
-
-          console.log("item saved");
-          resolve(id = rows.insertId);
-        });
-
+  //saving items
+  function save_items() {
+    return new Promise((resolve, reject) => {
+  
+      items.insertMany(req.body,(error, docs)=>{
+        if(error){
+          obj.status = false;
+          obj.message = "can't save item! please try again...";
+          res.send(obj);
+          reset();
+          resolve();
+        }
+    
+        console.log("items saved!");
+        resolve(data = docs);
       });
-    }
-    await save_items();
-
-    //making values for price query
-    values = "";
-    for (let i = 0; i < size; i++) {
-      for (let j = 0; j < params[i].price.length; j++) {
-        values += `('${params[i].price[j]}','${params[i].price[++j]}',${id})`;
-        if (j == params[i].price.length - 1) break;
-        values += ",";
-      }
-      if (i == size - 1) break;
-      id++;
-      values += ",";
-    }
-
-    //saving price
-    connection.query(`INSERT INTO quantity_price (type,price,item_id) values ${values}`, (err, rows) => {
-      if (err) throw err;
-
-      console.log("price saved");
-      res.send("items saved succesfully");
+  
     });
+  }
+  await save_items();
+
+  // making array of objects for quanity price
+  let arrObj = [];
+  let num = 0;
+  for(let i = 0 ; i < req.body.length ; i++){
+    for(let j = 0 ; j < req.body[i].quantity_price.length ; j++){
+      req.body[i].quantity_price[j].item_id = data[i].id;
+      arrObj[num] = req.body[i].quantity_price[j];
+      num++;
+    }
+  }
+
+  // saving price of products
+  quantity_price.insertMany(arrObj,(error, docs)=>{
+    if(error){
+      obj.status = false;
+      obj.message = "can't save quantity price! please try again...";
+      res.send(obj);
+      reset();
+      return;
+    }
+
+    //sending response
+    console.log("price saved!");
+    obj.message = "all dishes has been saved successfully!";
+    res.send(obj);
+    reset();
   });
+
 });
 
 //get all items
 app.get('/items',async (req, res) => {
 
-  await get("SELECT * FROM items");
-  let items = obj.data;
-  await get("SELECT * FROM quantity_price");
-  let price = obj.data;
+  const item = await items.find({});
+  const price = await quantity_price.find({});
 
-  // combining items with price
-  for(let i = 0 ; i < items.length ; i++){
-    let arr = "[";
-    for(let j = 0 ; j < price.length ; j++){
-      if(items[i].id == price[j].item_id){
-        arr += JSON.stringify(price[j]);
-        if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
-          arr += "]";
-          break;
-        }
-        arr += ",";
-      }
-    }
-    items[i].quantity_price = JSON.parse(arr);
-  }
+
+
+  // await get("SELECT * FROM items");
+  // let items = obj.data;
+  // await get("SELECT * FROM quantity_price");
+  // let price = obj.data;
+
+  // // combining items with price
+  // for(let i = 0 ; i < items.length ; i++){
+  //   let arr = "[";
+  //   for(let j = 0 ; j < price.length ; j++){
+  //     if(items[i].id == price[j].item_id){
+  //       arr += JSON.stringify(price[j]);
+  //       if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
+  //         arr += "]";
+  //         break;
+  //       }
+  //       arr += ",";
+  //     }
+  //   }
+  //   items[i].quantity_price = JSON.parse(arr);
+  // }
 
   //sending response
   obj.success = true;
