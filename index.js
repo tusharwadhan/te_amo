@@ -1,22 +1,22 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const mail = require('nodemailer');
 const bodyparser = require('body-parser');
 const { json } = require('express');
+// const mail = require('nodemailer');
 
 const app = express();
 const port = process.env.PORT || 8000;
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
 
-//mail connection
-var transporter = mail.createTransport({
-  service: 'gmail',
-  auth: {
-    user: 'tushar.code05@gmail.com',
-    pass: 'bot@@123'
-  }
-});
+// //mail connection
+// var transporter = mail.createTransport({
+//   service: 'gmail',
+//   auth: {
+//     user: 'tushar.code05@gmail.com',
+//     pass: 'bot@@123'
+//   }
+// });
 
 //mongoDB connection
 mongoose.connect('mongodb://localhost:27017/TeAmo')
@@ -99,46 +99,47 @@ app.get('/', (req, res) => {
 app.post('/users',async (req, res) => {
 
   //4 digit random number
-  var ran = await Math.floor(1000 + Math.random() * 9000);
+  // var ran = await Math.floor(1000 + Math.random() * 9000);
 
   //making password and saving
-  const params = req.body[0]
-  var password = `${params.name}${ran}`;
-  var email = params.email;
-  console.log(`Password: ${password}`);
-  req.body[0].password = password;
+  // const params = req.body[0]
+  // var password = `${params.name}${ran}`;
+  // var email = params.email;
+  // console.log(`Password: ${password}`);
+  // req.body[0].password = password;
 
   //inserting data into db
   await users.insertMany(req.body, function(error, docs) {
     if(error) throw error;
 
     console.log("user saved!");
-    obj.message = "user saved successfully!";
+    obj.message = `user with name: ${req.body[0].name} has been saved successfully!`;
     res.send(obj);
     reset();
   });
 
   //sending mail
-  var mailOptions = {
-    from: 'tushar.code05@gmail.com',
-    to: email,
-    subject: 'Your password! don`t share with anyone.',
-    text: `your password is "${password}"`
-  };
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log(error);
-    }
-    else {
-      console.log('Email sent: ' + info.response);
-    }
-  });
+  // var mailOptions = {
+  //   from: 'tushar.code05@gmail.com',
+  //   to: email,
+  //   subject: 'Your password! don`t share with anyone.',
+  //   text: `your password is "${password}"`
+  // };
+  // transporter.sendMail(mailOptions, function (error, info) {
+  //   if (error) {
+  //     console.log(error);
+  //   }
+  //   else {
+  //     console.log('Email sent: ' + info.response);
+  //   }
+  // });
 
 });
 
 //get users
 app.get('/users', async (req, res) => {
   const result = await users.find({});
+
   obj.message = "users get successfully!";
   obj.data = result;
   res.send(obj);
