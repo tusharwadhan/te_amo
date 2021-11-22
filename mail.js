@@ -39,7 +39,24 @@
 
   var obj = [{"hello":"hi there","hello1":"hello2"},{"hello":"hi there","hello1":"hello2"}];
 
-  arr[0] = obj;
+  obj.hello3 = [
+    {
+      _id: '61976107487ac6536ca29339',
+      type: 'half',
+      price: 50,
+      item_id: '61976107487ac6536ca29336',
+      __v: 0
+    },
+    {
+      _id: '61976107487ac6536ca2933a',
+      type: 'full',
+      price: 100,
+      item_id: '61976107487ac6536ca29336',
+      __v: 0
+    }
+  ]
+
+  // arr[0] = obj;
     // arr[0] = obj;
     // arr[1] = obj;
-  console.log(arr);
+  console.log(obj);

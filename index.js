@@ -225,68 +225,59 @@ app.post('/items',async(req, res)=>{
 //get all items
 app.get('/items',async (req, res) => {
 
-  const item = await items.find({});
-  const price = await quantity_price.find({});
+  //getting items and price
+  var item = await items.find({},{id:1,name:1,category_id:1,isVeg:1})
+  var price = await quantity_price.find({});
+  var result = JSON.parse(JSON.stringify(item));
 
-
-
-  // await get("SELECT * FROM items");
-  // let items = obj.data;
-  // await get("SELECT * FROM quantity_price");
-  // let price = obj.data;
-
-  // // combining items with price
-  // for(let i = 0 ; i < items.length ; i++){
-  //   let arr = "[";
-  //   for(let j = 0 ; j < price.length ; j++){
-  //     if(items[i].id == price[j].item_id){
-  //       arr += JSON.stringify(price[j]);
-  //       if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
-  //         arr += "]";
-  //         break;
-  //       }
-  //       arr += ",";
-  //     }
-  //   }
-  //   items[i].quantity_price = JSON.parse(arr);
-  // }
+  // adding price in items
+  for(let i = 0 ; i < item.length ; i++){
+    let arr = [];
+    let num = 0;
+    for(let j = 0 ; j < price.length ; j++){
+      if(item[i].id == price[j].item_id){
+        arr[num] = price[j];
+        num++;
+      }
+    }
+    result[i].quantity_price = arr;
+  }
+  console.log("done");
 
   //sending response
-  obj.success = true;
-  obj.message = "get items successfully";
-  obj.data = items;
+  obj.message = "items get successfully";
+  obj.data = result;
   res.send(obj);
+  reset();
 });
 
 //get items with category id
-app.post('/filteritems',async (req, res) => {
+app.get('/items/:category_id',async (req, res) => {
 
-  await get(`SELECT * FROM items WHERE category_id = ${req.body.category_id}`);
-  let items = obj.data;
-  await get("SELECT * FROM quantity_price");
-  let price = obj.data;
+  // getting items and price
+  var item = await items.find({category_id:req.params.category_id},{id:1,name:1,category_id:1,isVeg:1})
+  var price = await quantity_price.find({});
+  var result = JSON.parse(JSON.stringify(item));
 
-  //combining items with price
-  for(let i = 0 ; i < items.length ; i++){
-    let arr = "[";
+  // adding price in items
+  for(let i = 0 ; i < item.length ; i++){
+    let arr = [];
+    let num = 0;
     for(let j = 0 ; j < price.length ; j++){
-      if(items[i].id == price[j].item_id){
-        arr += JSON.stringify(price[j]);
-        if(price[j+1] == undefined || items[i].id != price[j + 1].item_id){
-          arr += "]";
-          break;
-        }
-        arr += ",";
+      if(item[i].id == price[j].item_id){
+        arr[num] = price[j];
+        num++;
       }
     }
-    items[i].quantity_price = JSON.parse(arr);
+    result[i].quantity_price = arr;
   }
+  console.log("done");
 
   //sending response
-  obj.success = true;
-  obj.message = `items get succesfully with category no:'${req.body.category_id}'`;
-  obj.data = items;
+  obj.message = "items get successfully";
+  obj.data = result;
   res.send(obj);
+  reset();
 });
 
 //current table section(add order)
