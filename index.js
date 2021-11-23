@@ -4,9 +4,9 @@ const bodyparser = require('body-parser');
 const { json } = require('express');
 
 const app = express();
-const port = process.env.PORT || 8000;
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
+const port = process.env.PORT || 8000;
 
 //mongoDB connection
 mongoose.connect('mongodb://localhost:27017/TeAmo')
@@ -83,8 +83,8 @@ function reset(){
 //server succesfull message
 app.get('/',async (req, res) => {
   // res.send(`server is running succesfully on port ${port}`);
-  const item  = await items.find({});
-  res.send(item);
+  const order = await current_Order.find({});
+  res.send(order);
 });
 
 //add users
@@ -282,92 +282,106 @@ app.get('/items/:category_id',async (req, res) => {
 
 //current table section(add order)
 app.post('/order', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
 
-    let values = "";
-    let params = req.body;
-
-    for (let i = 0; i < params.length; i++) {
-      values += `('${params[i].item_name}','${params[i].quantity}','${params[i].veg_non}','${params[i].price}',${params[i].table_no})`;
-      if (i == params.length - 1) break;
-      values += ",";
+  current_Order.insertMany(req.body,(error, docs)=>{
+    if(error){
+      obj.status = false;
+      obj.message = "can't add order! please try again...";
+      res.send(obj);
+      reset();
+      return;
     }
 
-    connection.query(`INSERT INTO current_order (item_name,quantity,veg_non,price,table_no) VALUES ${values}` , (err, rows) => {
-      if (err) throw err;
-      res.send(rows);
-    });
+    console.log("order added");
+    obj.message = "order added successfully";
+    res.send(obj);
+    reset();
   });
 });
 
 //get orders with table_no
 app.get('/order/:table_no',async (req, res) => {
 
-  await get(`SELECT * FROM current_order WHERE table_no = ${req.params.table_no}`);
-  obj.message = `orders get succesfully with table no:'${req.params.table_no}'`;
+  const order = await current_Order.find({table_no:req.params.table_no});
+  obj.message = "order get successfully";
+  obj.data = order;
   res.send(obj);
+  reset();
 });
 
 //delete order with order_id
-app.delete('/order', (req, res) => {
-  pool.getConnection((err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
-
-    connection.query('DELETE FROM current_order WHERE ?',req.body, (err, rows) => {
-      if (err) throw err;
-      res.send("order deleted successfully");
-    });
-  });
+app.delete('/order',async (req, res) => {
+  const del = await current_Order.deleteMany({_id:req.body.id});
+  if(del.deletedCount == 0){
+    obj.status = false;
+    obj.message = "no order with this id exist!";
+    res.send(obj);
+    reset();
+  }
+  else{
+    console.log(del);
+    obj.message = "order deleted successfully";
+    res.send(obj);
+    reset();
+  }
 });
 
 // order finish section
-app.post('/orderfinish', (req, res) => {
-  pool.getConnection(async(err, connection) => {
-    if (err) throw err;
-    console.log("connected to database");
+app.post('/orderfinish',async (req, res) => {
 
-    let price;
+  // getting price from table
+  const price = await current_Order.find({table_no:req.body.table_no},{id:1,price:1});
 
-    function get_price() {
-      return new Promise((resolve, reject) => {
+  // getting total price
+  let total = 0;
+  for(let i = 0 ; i < price.length ; i++){
+    let p = parseFloat(price[i].price);
+    total += p;
+  }
+  console.log(total);
 
-        connection.query('SELECT price FROM current_order WHERE ?',req.body, (err, rows) => {
-          if (err) throw err;
-          resolve(price = rows);
-        });
+  //getting current date
+  var datetime = new Date();
+  datetime = datetime.toISOString().slice(0,10);
+  console.log(datetime);
 
-      });
+  // inserting in transactions
+  var insertobj = [{"table_no":req.body.table_no, "amount":total ,"date":datetime}];
+  transactions.insertMany(insertobj,(error, docs)=>{
+    if(error){
+      obj.status = false;
+      obj.message = "can't add transaction! please try again...";
+      res.send(obj);
+      reset();
+      return;
     }
-    
-    await get_price();
-    let total = 0;
-
-    for(let i = 0 ; i < price.length ; i++){
-      let p = parseFloat(price[i].price);
-      total += p;
-    }
-
-    connection.query('INSERT INTO `transactions` (`id`, `table`, `amount`, `date`) VALUES (NULL,? , ?, CURRENT_DATE())' , [req.body.table_no,JSON.stringify(total)], (err, rows) => {
-      if (err) throw err;
-      console.log("transaction added");
-    });
-
-    connection.query('DELETE FROM current_order WHERE ?',req.body, (err, rows) => {
-      if (err) throw err;
-      console.log("order deleted successfully");
-      res.send("operation done successfully");
-    });
+    console.log("order added in transaction");
   });
+
+  // deleting order from current order with tableNo
+  const del = await current_Order.deleteMany({table_no:req.body.table_no});
+  if(del.deletedCount == 0){
+    obj.status = false;
+    obj.message = "no order with this tableNo exist!";
+    res.send(obj);
+    reset();
+  }
+  else{
+    console.log("orders deleted");
+    obj.message = "order finished";
+    res.send(obj);
+    reset();
+  }
 });
 
 //get transaction
 app.get('/transactions',async (req, res) => {
 
-  await get('SELECT * FROM transactions');
+  const transaction = await transactions.find({});
+  obj.message = "transactions get successfully";
+  obj.data = transaction;
   res.send(obj);
+  reset();
 });
 
 app.listen(port, () => console.log(`server started on port ${port}`));
