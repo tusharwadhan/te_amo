@@ -8,7 +8,7 @@ app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
 const port = process.env.PORT || 8000;
 
-var dburl = "mongodb+srv://tushar:tushar52002@cluster0.wlx9v.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+var dburl = "mongodb+srv://tushar:tushar52002@cluster0.wlx9v.mongodb.net/TeAmo?retryWrites=true&w=majority";
 // var dburl = 'mongodb://localhost:27017/TeAmo';
 
 //mongoDB connection
