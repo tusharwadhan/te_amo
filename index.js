@@ -85,9 +85,7 @@ function reset(){
 
 //server succesfull message
 app.get('/',async (req, res) => {
-  // res.send(`server is running succesfully on port ${port}`);
-  const order = await current_Order.find({});
-  res.send(order);
+  res.send(`server is running succesfully on port ${port}`);
 });
 
 //add users
