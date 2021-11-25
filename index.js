@@ -331,7 +331,7 @@ app.delete('/order',async (req, res) => {
 app.post('/orderfinish',async (req, res) => {
 
   // getting price from table
-  const price = await current_Order.find({table_no:req.body.table_no},{id:1,price:1});
+  const price = await current_Order.find({table_no:req.body[0].table_no},{id:1,price:1});
 
   // getting total price
   let total = 0;
@@ -347,7 +347,7 @@ app.post('/orderfinish',async (req, res) => {
   console.log(datetime);
 
   // inserting in transactions
-  var insertobj = [{"table_no":req.body.table_no, "amount":total ,"date":datetime}];
+  var insertobj = [{"table_no":req.body[0].table_no, "amount":total ,"date":datetime}];
   transactions.insertMany(insertobj,(error, docs)=>{
     if(error){
       obj.status = false;
@@ -360,7 +360,7 @@ app.post('/orderfinish',async (req, res) => {
   });
 
   // deleting order from current order with tableNo
-  const del = await current_Order.deleteMany({table_no:req.body.table_no});
+  const del = await current_Order.deleteMany({table_no:req.body[0].table_no});
   if(del.deletedCount == 0){
     obj.status = false;
     obj.message = "no order with this tableNo exist!";
