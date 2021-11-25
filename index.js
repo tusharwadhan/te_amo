@@ -312,7 +312,7 @@ app.get('/order/:table_no',async (req, res) => {
 
 //delete order with order_id
 app.delete('/order',async (req, res) => {
-  const del = await current_Order.deleteMany({_id:req.body.id});
+  const del = await current_Order.deleteMany({_id:req.body[0].id});
   if(del.deletedCount == 0){
     obj.status = false;
     obj.message = "no order with this id exist!";
