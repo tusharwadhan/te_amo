@@ -92,7 +92,7 @@ app.get('/',async (req, res) => {
 app.post('/users',async (req, res) => {
 
   //inserting data into db
-  await users.insertMany(req.body, function(error, docs) {
+  await users.create(req.body,(error, docs)=> {
     if(error){
       obj.status = false;
       obj.message = "can't save user";
@@ -102,7 +102,8 @@ app.post('/users',async (req, res) => {
     }
     
     console.log("user saved!");
-    obj.message = `user with name: ${req.body[0].name} has been saved successfully!`;
+    obj.message = `user with name: ${req.body.name} has been saved successfully!`;
+    obj.data = docs;
     res.send(obj);
     reset();
   });
@@ -122,19 +123,24 @@ app.get('/users', async (req, res) => {
 //login
 app.post('/login',async (req, res) => {
 
-  const result = await users.find({email:req.body[0].email});
+  let result = await users.find({email:req.body.email});
   if(result[0]==undefined){
+    obj.status = false;
     obj.message = "user not found!";
     res.send(obj);
     reset();
   }
-  else if(result[0].password != req.body[0].password){
-    obj.message = `password not matched for email: ${req.body[0].email}`;
+  else if(result[0].password != req.body.password){
+    obj.status = false;
+    obj.message = `password not matched for email: ${req.body.email}`;
     res.send(obj);
     reset();
   }
   else{
+    result = JSON.parse(JSON.stringify(result));
+    delete result[0].password;
     obj.message = "password matched successfully!";
+    obj.data = result;
     res.send(obj);
     reset();
   }
@@ -142,7 +148,7 @@ app.post('/login',async (req, res) => {
 
 //add category section
 app.post('/category',async (req, res) => {
-  await category.insertMany(req.body,(error, docs)=>{
+  await category.create(req.body,(error, docs)=>{
     if(error){
       obj.status = false;
       obj.message = "can't save category";
@@ -255,6 +261,12 @@ app.get('/items',async (req, res) => {
 //current table section(add order)
 app.post('/order', (req, res) => {
 
+  for(let i = 0 ; i < req.body.length ; i++){
+    req.body[i].quantity = req.body[i].quantity_price.type;
+    req.body[i].price = req.body[i].quantity_price.price;
+    delete req.body[i].quantity_price;
+  }
+
   current_Order.insertMany(req.body,(error, docs)=>{
     if(error){
       obj.status = false;
@@ -274,16 +286,31 @@ app.post('/order', (req, res) => {
 //get orders with table_no
 app.get('/order',async (req, res) => {
 
-  const order = await current_Order.find(req.query);
-  obj.message = "order get successfully";
-  obj.data = order;
-  res.send(obj);
-  reset();
+  const order = await current_Order.find(req.query).lean();
+
+  if(JSON.stringify(order) == "[]"){
+    obj.status = false;
+    obj.message = "This table have no orders";
+    res.send(obj);
+    reset();
+  }
+  else{
+    for(let i = 0 ; i < order.length ; i++){
+      let qp = {"type":order[i].quantity , "price":order[i].price};
+      order[i].quantity_price = qp;
+      delete order[i].quantity;
+      delete order[i].price;
+    }
+    obj.message = "order get successfully";
+    obj.data = order;
+    res.send(obj);
+    reset();
+  }
 });
 
 //delete order with order_id
 app.delete('/order',async (req, res) => {
-  const del = await current_Order.deleteMany({_id:req.body[0].id});
+  const del = await current_Order.deleteMany({_id:req.body.id});
   if(del.deletedCount == 0){
     obj.status = false;
     obj.message = "no order with this id exist!";
@@ -302,7 +329,15 @@ app.delete('/order',async (req, res) => {
 app.post('/orderfinish',async (req, res) => {
 
   // getting price from table
-  const price = await current_Order.find({table_no:req.body[0].table_no},{id:1,price:1});
+  const price = await current_Order.find(req.body,{id:1,price:1});
+
+  if(JSON.stringify(price) == "[]"){
+    obj.status = false;
+    obj.message = "no order of this tableNo exist!";
+    res.send(obj);
+    reset();
+    return;
+  }
 
   // getting total price
   let total = 0;
@@ -318,7 +353,7 @@ app.post('/orderfinish',async (req, res) => {
   console.log(datetime);
 
   // inserting in transactions
-  var insertobj = [{"table_no":req.body[0].table_no, "amount":total ,"date":datetime}];
+  var insertobj = [{"table_no":req.body.table_no, "amount":total ,"date":datetime}];
   transactions.insertMany(insertobj,(error, docs)=>{
     if(error){
       obj.status = false;
@@ -331,19 +366,11 @@ app.post('/orderfinish',async (req, res) => {
   });
 
   // deleting order from current order with tableNo
-  const del = await current_Order.deleteMany({table_no:req.body[0].table_no});
-  if(del.deletedCount == 0){
-    obj.status = false;
-    obj.message = "no order with this tableNo exist!";
-    res.send(obj);
-    reset();
-  }
-  else{
-    console.log("orders deleted");
-    obj.message = "order finished";
-    res.send(obj);
-    reset();
-  }
+  const del = await current_Order.deleteMany({table_no:req.body.table_no});
+  console.log("orders deleted ",del);
+  obj.message = "order finished";
+  res.send(obj);
+  reset();
 });
 
 //get transaction
