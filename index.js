@@ -223,40 +223,11 @@ app.post('/items',async(req, res)=>{
 
 });
 
-//get all items
+//get items (with or without category id)
 app.get('/items',async (req, res) => {
 
   //getting items and price
-  var item = await items.find({},{id:1,name:1,category_id:1,isVeg:1})
-  var price = await quantity_price.find({});
-  var result = JSON.parse(JSON.stringify(item));
-
-  // adding price in items
-  for(let i = 0 ; i < item.length ; i++){
-    let arr = [];
-    let num = 0;
-    for(let j = 0 ; j < price.length ; j++){
-      if(item[i].id == price[j].item_id){
-        arr[num] = price[j];
-        num++;
-      }
-    }
-    result[i].quantity_price = arr;
-  }
-  console.log("done");
-
-  //sending response
-  obj.message = "items get successfully";
-  obj.data = result;
-  res.send(obj);
-  reset();
-});
-
-//get items with category id
-app.get('/items/:category_id',async (req, res) => {
-
-  // getting items and price
-  var item = await items.find({category_id:req.params.category_id},{id:1,name:1,category_id:1,isVeg:1})
+  var item = await items.find(req.query,{id:1,name:1,category_id:1,isVeg:1})
   var price = await quantity_price.find({});
   var result = JSON.parse(JSON.stringify(item));
 
@@ -301,9 +272,9 @@ app.post('/order', (req, res) => {
 });
 
 //get orders with table_no
-app.get('/order/:table_no',async (req, res) => {
+app.get('/order',async (req, res) => {
 
-  const order = await current_Order.find({table_no:req.params.table_no});
+  const order = await current_Order.find(req.query);
   obj.message = "order get successfully";
   obj.data = order;
   res.send(obj);
