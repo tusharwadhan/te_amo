@@ -29,11 +29,11 @@ const category = mongoose.model('category', CategorySchema);
 
 // currentOrder schema and model
 const currentOrderSchema = new mongoose.Schema({
-  item_name: String,
-  quantity: String,
+  item_id: String,
+  quantity_id: String,
   isVeg: Boolean,
   price: Number,
-  table_no: Number 
+  table_no: Number
 });
 const current_Order = mongoose.model('current_order', currentOrderSchema);
 
@@ -140,7 +140,7 @@ app.post('/login',async (req, res) => {
     result = JSON.parse(JSON.stringify(result));
     delete result[0].password;
     obj.message = "password matched successfully!";
-    obj.data = result;
+    obj.data = result[0];
     res.send(obj);
     reset();
   }
@@ -159,6 +159,7 @@ app.post('/category',async (req, res) => {
 
     console.log("category saved!");;
     obj.message = "category saved successfully!";
+    obj.data = docs;
     res.send(obj);
     reset();
   });
@@ -259,12 +260,18 @@ app.get('/items',async (req, res) => {
 });
 
 //current table section(add order)
-app.post('/order', (req, res) => {
+app.post('/order',async (req, res) => {
 
   for(let i = 0 ; i < req.body.length ; i++){
-    req.body[i].quantity = req.body[i].quantity_price.type;
-    req.body[i].price = req.body[i].quantity_price.price;
-    delete req.body[i].quantity_price;
+    const price = await quantity_price.find({_id:req.body[i].quantity_id});
+    if(JSON.stringify(price) == "[]"){
+      obj.status = false;
+      obj.message = "QuantityID is wrong or doesn't exist.. please try again";
+      res.send(obj);
+      reset();
+      return;
+    }
+    req.body[i].price = price[0].price;
   }
 
   current_Order.insertMany(req.body,(error, docs)=>{
@@ -276,7 +283,7 @@ app.post('/order', (req, res) => {
       return;
     }
 
-    console.log("order added");
+    console.log("order added",docs);
     obj.message = "order added successfully";
     res.send(obj);
     reset();
@@ -296,9 +303,13 @@ app.get('/order',async (req, res) => {
   }
   else{
     for(let i = 0 ; i < order.length ; i++){
-      let qp = {"type":order[i].quantity , "price":order[i].price};
+      const quantity = await quantity_price.find({_id:order[i].quantity_id})
+      const item = await items.find({_id:order[i].item_id});
+      let qp = {"type":quantity[0].type , "price":order[i].price};
+      order[i].name = item[0].name;
       order[i].quantity_price = qp;
-      delete order[i].quantity;
+      delete order[i].quantity_id;
+      delete order[i].item_id;
       delete order[i].price;
     }
     obj.message = "order get successfully";
