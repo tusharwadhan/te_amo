@@ -314,6 +314,7 @@ app.get('/order',async (req, res) => {
     }
     obj.message = "order get successfully";
     obj.data = order;
+    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   }
