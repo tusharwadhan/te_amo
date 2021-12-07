@@ -419,4 +419,13 @@ app.get('/transactions',async (req, res) => {
   reset();
 });
 
+app.get('*',async (req, res) => {
+
+  obj.status = false;
+  obj.message = "this link does not exist.. please go to right route!!";
+  res.setHeader('Access-Control-Allow-Origin','*');
+  res.send(obj);
+  reset();
+});
+
 app.listen(port, () => console.log(`server started on port ${port}`));
