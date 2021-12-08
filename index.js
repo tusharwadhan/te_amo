@@ -8,6 +8,13 @@ app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
 const port = process.env.PORT || 8000;
 
+
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
 var dburl = "mongodb+srv://tushar:tushar52002@cluster0.wlx9v.mongodb.net/TeAmo?retryWrites=true&w=majority";
 // var dburl = 'mongodb://localhost:27017/TeAmo';
 
@@ -97,7 +104,6 @@ app.post('/users',async (req, res) => {
     if(error){
       obj.status = false;
       obj.message = "can't save user";
-      res.setHeader('Access-Control-Allow-Origin','*');
       res.send(obj);
       reset();
       return;
@@ -106,7 +112,6 @@ app.post('/users',async (req, res) => {
     console.log("user saved!");
     obj.message = `user with name: ${req.body.name} has been saved successfully!`;
     obj.data = docs;
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   });
@@ -119,7 +124,6 @@ app.get('/users', async (req, res) => {
 
   obj.message = "users get successfully!";
   obj.data = result;
-  res.setHeader('Access-Control-Allow-Origin','*');
   res.send(obj);
   reset();
 });
@@ -131,14 +135,12 @@ app.post('/login',async (req, res) => {
   if(result[0]==undefined){
     obj.status = false;
     obj.message = "user not found!";
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   }
   else if(result[0].password != req.body.password){
     obj.status = false;
     obj.message = `password not matched for email: ${req.body.email}`;
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   }
@@ -147,7 +149,6 @@ app.post('/login',async (req, res) => {
     delete result[0].password;
     obj.message = "password matched successfully!";
     obj.data = result[0];
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   }
@@ -159,7 +160,6 @@ app.post('/category',async (req, res) => {
     if(error){
       obj.status = false;
       obj.message = "can't save category";
-      res.setHeader('Access-Control-Allow-Origin','*');
       res.send(obj);
       reset();
       return;
@@ -168,7 +168,6 @@ app.post('/category',async (req, res) => {
     console.log("category saved!");;
     obj.message = "category saved successfully!";
     obj.data = docs;
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   });
@@ -179,7 +178,6 @@ app.get('/category',async (req, res) => {
   const result = await category.find({});
   obj.message = "category get successfully! ";
   obj.data = result;
-  res.setHeader('Access-Control-Allow-Origin','*');
   res.send(obj);
   reset();
 });
@@ -197,7 +195,6 @@ app.post('/items',async(req, res)=>{
         if(error){
           obj.status = false;
           obj.message = "can't save item! please try again...";
-          res.setHeader('Access-Control-Allow-Origin','*');
           res.send(obj);
           reset();
           resolve();
@@ -227,7 +224,6 @@ app.post('/items',async(req, res)=>{
     if(error){
       obj.status = false;
       obj.message = "can't save quantity price! please try again...";
-      res.setHeader('Access-Control-Allow-Origin','*');
       res.send(obj);
       reset();
       return;
@@ -236,7 +232,6 @@ app.post('/items',async(req, res)=>{
     //sending response
     console.log("price saved!");
     obj.message = "all dishes has been saved successfully!";
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   });
@@ -268,7 +263,6 @@ app.get('/items',async (req, res) => {
   //sending response
   obj.message = "items get successfully";
   obj.data = result;
-  res.setHeader('Access-Control-Allow-Origin','*');
   res.send(obj);
   reset();
 });
@@ -281,7 +275,6 @@ app.post('/order',async (req, res) => {
     if(JSON.stringify(price) == "[]"){
       obj.status = false;
       obj.message = "QuantityID is wrong or doesn't exist.. please try again";
-      res.setHeader('Access-Control-Allow-Origin','*');
       res.send(obj);
       reset();
       return;
@@ -293,7 +286,6 @@ app.post('/order',async (req, res) => {
     if(error){
       obj.status = false;
       obj.message = "can't add order! please try again...";
-      res.setHeader('Access-Control-Allow-Origin','*');
       res.send(obj);
       reset();
       return;
@@ -301,7 +293,6 @@ app.post('/order',async (req, res) => {
 
     console.log("order added",docs);
     obj.message = "order added successfully";
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   });
@@ -315,7 +306,6 @@ app.get('/order',async (req, res) => {
   if(JSON.stringify(order) == "[]"){
     obj.status = false;
     obj.message = "This table have no orders";
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   }
@@ -332,7 +322,6 @@ app.get('/order',async (req, res) => {
     }
     obj.message = "order get successfully";
     obj.data = order;
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   }
@@ -344,14 +333,12 @@ app.delete('/order',async (req, res) => {
   if(del.deletedCount == 0){
     obj.status = false;
     obj.message = "no order with this id exist!";
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   }
   else{
     console.log(del);
     obj.message = "order deleted successfully";
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
   }
@@ -366,7 +353,6 @@ app.post('/orderfinish',async (req, res) => {
   if(JSON.stringify(price) == "[]"){
     obj.status = false;
     obj.message = "no order of this tableNo exist!";
-    res.setHeader('Access-Control-Allow-Origin','*');
     res.send(obj);
     reset();
     return;
@@ -391,7 +377,6 @@ app.post('/orderfinish',async (req, res) => {
     if(error){
       obj.status = false;
       obj.message = "can't add transaction! please try again...";
-      res.setHeader('Access-Control-Allow-Origin','*');
       res.send(obj);
       reset();
       return;
@@ -403,7 +388,6 @@ app.post('/orderfinish',async (req, res) => {
   const del = await current_Order.deleteMany({table_no:req.body.table_no});
   console.log("orders deleted ",del);
   obj.message = "order finished";
-  res.setHeader('Access-Control-Allow-Origin','*');
   res.send(obj);
   reset();
 });
@@ -414,7 +398,6 @@ app.get('/transactions',async (req, res) => {
   const transaction = await transactions.find({});
   obj.message = "transactions get successfully";
   obj.data = transaction;
-  res.setHeader('Access-Control-Allow-Origin','*');
   res.send(obj);
   reset();
 });
@@ -423,7 +406,6 @@ app.get('*',async (req, res) => {
 
   obj.status = false;
   obj.message = "this link does not exist.. please go to right route!!";
-  res.setHeader('Access-Control-Allow-Origin','*');
   res.send(obj);
   reset();
 });
