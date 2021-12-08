@@ -99,6 +99,20 @@ app.get('/',async (req, res) => {
 //add users
 app.post('/users',async (req, res) => {
 
+  if(req.body.name == "" ||
+     req.body.ph_no == "" ||
+     req.body.email == "" ||
+     req.body.res_name == "" ||
+     req.body.tables == (null||undefined) ||
+     req.body.password == ""){
+
+      obj.status = false;
+      obj.message = "please fill all the fields properly!!";
+      res.send(obj);
+      reset();
+      return;
+     }
+
   //inserting data into db
   await users.create(req.body,(error, docs)=> {
     if(error){
