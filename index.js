@@ -124,7 +124,7 @@ app.post('/users',async (req, res) => {
     }
     
     console.log("user saved!");
-    obj.message = `user with name: ${req.body.name} has been saved successfully!`;
+    obj.message = `Registered successfully!`;
     obj.data = docs;
     res.send(obj);
     reset();
@@ -161,7 +161,7 @@ app.post('/login',async (req, res) => {
   else{
     result = JSON.parse(JSON.stringify(result));
     delete result[0].password;
-    obj.message = "password matched successfully!";
+    obj.message = "Logged In successfully";
     obj.data = result[0];
     res.send(obj);
     reset();
