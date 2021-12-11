@@ -366,7 +366,7 @@ app.post('/orderfinish',async (req, res) => {
 
   if(JSON.stringify(price) == "[]"){
     obj.status = false;
-    obj.message = "no order of this tableNo exist!";
+    obj.message = "no order exist!";
     res.send(obj);
     reset();
     return;
