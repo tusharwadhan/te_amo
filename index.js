@@ -187,7 +187,8 @@ app.post('/login',async (req, res) => {
     result = JSON.parse(JSON.stringify(result));
     delete result[0].password;
     obj.message = "Logged In successfully";
-    obj.data = result[0];
+    // obj.data = result[0];
+    obj.data = req.session
     res.send(obj);
     reset();
   }
@@ -195,7 +196,7 @@ app.post('/login',async (req, res) => {
 
 //check login
 app.get('/isLogin' , async (req,res)=>{
-  if(req.session.cookie){
+  if(req.session){
     obj.message = `welcome back ${req.session.user_name}`;
     res.send(obj);
     reset();
