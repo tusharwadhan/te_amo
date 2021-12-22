@@ -2,10 +2,36 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyparser = require('body-parser');
 const { json } = require('express');
+const session = require('express-session');
+const MongoStore = require("connect-mongo");
+
+var dburl = "mongodb+srv://tushar:tushar52002@cluster0.wlx9v.mongodb.net/TeAmo?retryWrites=true&w=majority";
+// var dburl = 'mongodb://localhost:27017/TeAmo';
 
 const app = express();
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
+
+const store = new MongoStore({
+  mongoUrl: dburl,
+  secret: 'secret'
+})
+store.on("error",function(e){
+  console.log("session error" , e);
+})
+
+app.use(session({
+  store,
+  secret:'secret',
+  name: 'session',
+  resave: false,
+  saveUninitialized: true,
+  cookie:{
+    httpOnly: true,
+    expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  }
+}))
 const port = process.env.PORT || 8000;
 
 
@@ -15,9 +41,6 @@ app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
   next();
 });
-
-var dburl = "mongodb+srv://tushar:tushar52002@cluster0.wlx9v.mongodb.net/TeAmo?retryWrites=true&w=majority";
-// var dburl = 'mongodb://localhost:27017/TeAmo';
 
 //mongoDB connection
 mongoose.connect(dburl)
@@ -93,7 +116,6 @@ function reset(){
 
 //server succesfull message
 app.get('/',async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin','*');
   res.send(`server is running succesfully on port ${port}`);
 });
 
@@ -160,6 +182,8 @@ app.post('/login',async (req, res) => {
     reset();
   }
   else{
+    req.session.user_id = result[0]._id
+    req.session.user_name = result[0].name
     result = JSON.parse(JSON.stringify(result));
     delete result[0].password;
     obj.message = "Logged In successfully";
@@ -168,6 +192,20 @@ app.post('/login',async (req, res) => {
     reset();
   }
 });
+
+//check login
+app.get('/isLogin' , async (req,res)=>{
+  if(req.session.user_id){
+    obj.message = `welcome back ${req.session.user_name}`;
+    res.send(obj);
+    reset();
+    return;
+  }
+  obj.status = false;
+  obj.message = 'please login';
+  res.send(obj);
+  reset();
+})
 
 //add category section
 app.post('/category',async (req, res) => {
