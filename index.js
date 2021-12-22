@@ -27,6 +27,7 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie:{
+    httpOnly:false,
     expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
     maxAge: 1000 * 60 * 60 * 24 * 7
   }
@@ -187,8 +188,7 @@ app.post('/login',async (req, res) => {
     result = JSON.parse(JSON.stringify(result));
     delete result[0].password;
     obj.message = "Logged In successfully";
-    // obj.data = result[0];
-    obj.data = req.session
+    obj.data = result[0];
     res.send(obj);
     reset();
   }
