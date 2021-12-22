@@ -36,7 +36,7 @@ const port = process.env.PORT || 8000;
 
 
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.header("Access-Control-Allow-Origin", "https://te-am-o.herokuapp.com");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
   res.header("Access-Control-Allow-Credentials",true)
@@ -183,8 +183,8 @@ app.post('/login',async (req, res) => {
     reset();
   }
   else{
-    req.session.user_id = result[0]._id
-    req.session.user_name = result[0].name
+    req.session.cookie.user_id = result[0]._id
+    console.log(req.session)
     result = JSON.parse(JSON.stringify(result));
     delete result[0].password;
     obj.message = "Logged In successfully";
@@ -196,8 +196,9 @@ app.post('/login',async (req, res) => {
 
 //check login
 app.get('/isLogin' , async (req,res)=>{
-  if(req.session.user_id){
-    obj.message = `welcome back ${req.session.user_name}`;
+  console.log(req.session)
+  if(req.session.cookie){
+    obj.message = `welcome back`;
     res.send(obj);
     reset();
     return;
