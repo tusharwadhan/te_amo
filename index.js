@@ -196,7 +196,7 @@ app.post('/login',async (req, res) => {
 
 //check login
 app.get('/isLogin' , async (req,res)=>{
-  if(req.session){
+  if(req.session.user_id){
     obj.message = `welcome back ${req.session.user_name}`;
     res.send(obj);
     reset();
