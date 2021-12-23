@@ -11,6 +11,7 @@ var dburl = "mongodb+srv://tushar:tushar52002@cluster0.wlx9v.mongodb.net/TeAmo?r
 const app = express();
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
+app.set("trust proxy", 1);
 
 const store = new MongoStore({
   mongoUrl: dburl,
