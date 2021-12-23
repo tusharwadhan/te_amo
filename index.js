@@ -185,8 +185,8 @@ app.post('/login',async (req, res) => {
     reset();
   }
   else{
-    req.session.cookie.user_id = result[0]._id
-    req.session.cookie.user_name = result[0].name
+    req.session.user_id = result[0]._id
+    req.session.user_name = result[0].name
     result = JSON.parse(JSON.stringify(result));
     delete result[0].password;
     obj.message = "Logged In successfully";
