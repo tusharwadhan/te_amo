@@ -5,8 +5,9 @@ const { json } = require('express');
 const session = require('express-session');
 const MongoStore = require("connect-mongo");
 
-var dburl = "mongodb+srv://tushar:tushar52002@cluster0.wlx9v.mongodb.net/TeAmo?retryWrites=true&w=majority";
 // var dburl = 'mongodb://localhost:27017/TeAmo';
+var dburl = "mongodb+srv://kd:tushar52002@kd-database.hzffl.mongodb.net/";
+
 
 const app = express();
 app.use(bodyparser.urlencoded({ extended: false }));
