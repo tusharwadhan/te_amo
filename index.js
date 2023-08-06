@@ -140,7 +140,16 @@ app.post('/users',async (req, res) => {
       return;
      }
 
-  //inserting data into db
+     const check = await users.find({email:req.body.email})
+     if(check.length != 0){
+      obj.status = false;
+      obj.message = "user already exist";
+      res.send(obj)
+      reset()
+      return;
+     }
+
+  // inserting data into db
   await users.create(req.body,(error, docs)=> {
     if(error){
       obj.status = false;
